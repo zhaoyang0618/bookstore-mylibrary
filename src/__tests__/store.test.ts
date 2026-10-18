@@ -260,6 +260,26 @@ describe('scanDirectory + importBookFile（2.5 / 3.4）', () => {
     expect(result.skipped.some((s) => s.reason === '不支持的扩展名')).toBe(true);
   });
 
+  it('需要转换的格式给出明确提示，而非静默跳过', () => {
+    store.fs.writeFile('/src/1.djvu', 'djvu-content');
+    store.fs.writeFile('/src/2.mobi', 'mobi-content');
+    store.fs.writeFile('/src/unknown.xyz', 'x');
+    const result = scanDirectory(store.fs, '/src');
+
+    // 这些不进 books，但要在 skipped 里说明「要先转换」
+    expect(result.books).toHaveLength(0);
+    const djvu = result.skipped.find((s) => s.path.endsWith('1.djvu'));
+    expect(djvu?.reason).toContain('需要先转换为 PDF');
+    expect(djvu?.reason).toContain('convert_djvu_to_pdf');
+
+    const mobi = result.skipped.find((s) => s.path.endsWith('2.mobi'));
+    expect(mobi?.reason).toContain('需要先转换为 EPUB');
+
+    // 真正不支持的仍然是通用提示
+    const unknown = result.skipped.find((s) => s.path.endsWith('unknown.xyz'));
+    expect(unknown?.reason).toBe('不支持的扩展名');
+  });
+
   it('导入：复制到 books/{title}/ 并登记元数据', () => {
     store.fs.writeFile('/src/三体.epub', 'epub-content');
     const [scanned] = scanDirectory(store.fs, '/src').books;

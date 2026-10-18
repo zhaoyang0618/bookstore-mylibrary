@@ -14,6 +14,19 @@ const SCANNABLE = {
     '.txt': 'txt',
 };
 /**
+ * 阅读器不能直接渲染、需要先转换的格式（设计文档 2.3 / 阶段六）。
+ *
+ * 这些不是"不支持"，而是"要先转换"——扫描时给出明确提示，
+ * 而不是静默跳过，否则用户会以为文件丢了。
+ */
+const NEEDS_CONVERSION = {
+    '.djvu': { target: 'pdf', hint: '用 convert_djvu_to_pdf（ddjvu）先转成 PDF 再导入' },
+    '.djv': { target: 'pdf', hint: '用 convert_djvu_to_pdf（ddjvu）先转成 PDF 再导入' },
+    '.mobi': { target: 'epub', hint: '用 convert_and_open（pandoc / calibre）先转成 EPUB 再导入' },
+    '.azw3': { target: 'epub', hint: '用 convert_and_open 先转成 EPUB 再导入' },
+    '.chm': { target: 'epub', hint: '用 convert_and_open 先转成 EPUB 再导入' },
+};
+/**
  * 扫描一个目录树，找出可作为书籍导入的文件。
  *
  * 跳过规则：
@@ -51,6 +64,14 @@ export function scanDirectory(fs, root) {
             }
             const format = SCANNABLE[ext];
             if (format === undefined) {
+                const conversion = NEEDS_CONVERSION[ext];
+                if (conversion !== undefined) {
+                    skipped.push({
+                        path,
+                        reason: `需要先转换为 ${conversion.target.toUpperCase()}：${conversion.hint}`,
+                    });
+                    continue;
+                }
                 skipped.push({ path, reason: '不支持的扩展名' });
                 continue;
             }

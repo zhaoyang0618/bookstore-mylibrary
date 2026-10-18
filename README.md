@@ -39,7 +39,7 @@ mylibrary/
 
 ```bash
 pnpm install
-pnpm test          # 188 个测试
+pnpm test          # 189 个测试
 pnpm run build     # 产出 dist/
 
 # 生成示例数据（本地 + 网盘两份，用于两端联调）
@@ -85,7 +85,7 @@ node dist/cli.js pdf-annotations <目录> <PDF相对路径> [页码...]  # 列�
 
 ```
 Test Files  10 passed (10)
-     Tests  188 passed (188)
+     Tests  189 passed (189)
 ```
 
 包含：schema 兼容性、五类文档校验、版本对比、冲突合并（书籍并集 / 字段级 / 位置决胜 / holder 并集 / sync_state 择优）、Wiki 解析与序列化往返、扫描导入、四种删除语义、迁移备份，以及**端到端**：两个客户端（模拟 Mac + iPad）读写同一份数据。
@@ -124,6 +124,22 @@ PDFHexString.fromText('黑暗森林法则') → 读回 "黑暗森林法则" ✅
 
 因此 `/Contents`、`/T`、`/NM` 一律走 UTF-16BE 十六进制串（`<FEFF...>`）。
 `encodePdfText` / `decodePdfText` 把这条规则固化下来，并由测试守护。
+
+### 需要先转换的格式
+
+扫描器只直接接受 EPUB / PDF / Markdown / TXT。遇到 DjVu、MOBI 等格式时
+**不是静默跳过，而是给出明确指引**：
+
+```
+1.djvu → 需要先转换为 PDF：用 convert_djvu_to_pdf（ddjvu）先转成 PDF 再导入
+2.mobi → 需要先转换为 EPUB：用 convert_and_open 先转成 EPUB 再导入
+```
+
+完整链路（已在真实 507 页 DjVu 上验证）：
+
+```
+1.djvu (4MB) --ddjvu--> 1.pdf (36.5MB, 507页, 10.5秒) --导入--> MyLibrary --加注释--> 读回 ✅
+```
 
 ### 原子写入（保护原文件）
 
