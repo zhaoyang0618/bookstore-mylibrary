@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "library_version": 41,
+  "updated_at": "2026-10-16T10:30:00Z",
+  "updated_by": "flutter-ipad-uuid",
+  "clients": [
+    {
+      "id": "dsh-macos-client-uuid",
+      "type": "dsh-extension",
+      "platform": "macos",
+      "last_seen": "2026-10-16T10:30:00Z"
+    },
+    {
+      "id": "flutter-ipad-uuid",
+      "type": "flutter-app",
+      "platform": "ipad",
+      "last_seen": "2026-10-16T11:00:00Z"
+    }
+  ]
+}

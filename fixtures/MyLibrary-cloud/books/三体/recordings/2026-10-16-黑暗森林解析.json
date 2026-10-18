@@ -1,0 +1,16 @@
+{
+  "id": "rec-1",
+  "book_id": "uuid-1",
+  "title": "黑暗森林法则讲解",
+  "file": "2026-10-16-黑暗森林解析.mp4",
+  "duration_seconds": 1250,
+  "size_bytes": 158000000,
+  "created_at": "2026-10-16T10:30:00Z",
+  "created_by": "flutter-ipad-uuid",
+  "position_at_start": "epubcfi(/6/4[chap05]!/4/2/2)",
+  "position_at_end": "epubcfi(/6/4[chap05]!/4/10/2)",
+  "linked_wiki_pages": [
+    "dark-forest"
+  ],
+  "transcript": "本次讲解主要讨论了黑暗森林法则的两条公理与猜疑链、技术爆炸两个概念。"
+}

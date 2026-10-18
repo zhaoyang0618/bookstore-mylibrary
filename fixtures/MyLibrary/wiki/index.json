@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-10-17T10:54:46.327Z",
+  "pages": [
+    {
+      "id": "uuid-wiki-2",
+      "slug": "黑暗森林法则",
+      "title": "黑暗森林法则",
+      "path": "黑暗森林法则.md",
+      "updated_at": "2026-10-16T09:30:00Z",
+      "tags": [
+        "三体",
+        "理论"
+      ],
+      "source_books": [
+        "uuid-1"
+      ],
+      "links": [
+        "三体人物关系"
+      ]
+    },
+    {
+      "id": "uuid-wiki-1",
+      "slug": "三体人物关系",
+      "title": "三体人物关系",
+      "path": "三体人物关系.md",
+      "updated_at": "2026-10-16T09:00:00Z",
+      "tags": [
+        "三体",
+        "人物"
+      ],
+      "source_books": [
+        "uuid-1"
+      ],
+      "links": [
+        "叶文洁",
+        "黑暗森林法则",
+        "面壁计划"
+      ]
+    }
+  ]
+}

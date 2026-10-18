@@ -1,0 +1,100 @@
+{
+  "schema_version": "1.0",
+  "version": 42,
+  "updated_at": "2026-10-16T10:30:00Z",
+  "updated_by": "dsh-macos-client-uuid",
+  "books": [
+    {
+      "id": "uuid-1",
+      "title": "三体",
+      "author": "刘慈欣",
+      "format": "epub",
+      "relative_path": "books/三体/三体.epub",
+      "cover_path": "books/三体/cover.jpg",
+      "notes_path": "books/三体/三体.notes.json",
+      "recordings_dir": "books/三体/recordings/",
+      "size_bytes": 1048576,
+      "file_hash": "sha256:2c6b7b1f9a3d5e8c0f4a7b2d6e9c1f3a5b7d9e0c2f4a6b8d0e2c4f6a8b0d2e4c",
+      "added_at": "2026-10-01T00:00:00Z",
+      "sync_state": {
+        "metadata": "synced",
+        "cover": "synced",
+        "notes": "synced",
+        "file": "local_only",
+        "recordings": "local_only"
+      },
+      "held_by": [
+        {
+          "client_id": "dsh-macos-client-uuid",
+          "last_seen": "2026-10-16T10:30:00Z"
+        }
+      ],
+      "reading_position": {
+        "position": "epubcfi(/6/4[chap01]!/4/2/2)",
+        "percentage": 0.35,
+        "updated_at": "2026-10-16T10:30:00Z",
+        "updated_by": "flutter-ipad-uuid"
+      },
+      "tags": [
+        "科幻",
+        "中文"
+      ]
+    },
+    {
+      "id": "uuid-2",
+      "title": "人类简史",
+      "author": "尤瓦尔·赫拉利",
+      "format": "pdf",
+      "relative_path": "books/人类简史/人类简史.pdf",
+      "cover_path": "books/人类简史/cover.jpg",
+      "notes_path": "books/人类简史/人类简史.notes.json",
+      "recordings_dir": "books/人类简史/recordings/",
+      "size_bytes": 24117248,
+      "file_hash": "sha256:9f8e7d6c5b4a39281706f5e4d3c2b1a0998877665544332211aabbccddeeff00",
+      "added_at": "2026-10-05T00:00:00Z",
+      "sync_state": {
+        "metadata": "synced",
+        "cover": "synced",
+        "notes": "local_only",
+        "file": "local_only",
+        "recordings": "local_only"
+      },
+      "held_by": [
+        {
+          "client_id": "dsh-macos-client-uuid",
+          "last_seen": "2026-10-16T10:30:00Z"
+        }
+      ],
+      "tags": [
+        "历史",
+        "人类学"
+      ]
+    }
+  ],
+  "collections": [
+    {
+      "id": "col-1",
+      "name": "待读",
+      "created_at": "2026-10-16T08:30:00Z"
+    },
+    {
+      "id": "col-2",
+      "name": "科幻经典",
+      "created_at": "2026-10-16T08:30:00Z"
+    }
+  ],
+  "tags": [
+    {
+      "name": "科幻",
+      "created_at": "2026-10-16T08:30:00Z"
+    },
+    {
+      "name": "中文",
+      "created_at": "2026-10-16T08:30:00Z"
+    },
+    {
+      "name": "历史",
+      "created_at": "2026-10-16T08:30:00Z"
+    }
+  ]
+}

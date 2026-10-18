@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install
+
+      - name: 类型检查
+        run: pnpm run typecheck
+
+      - name: 单元测试（107 个）
+        run: pnpm test
+
+      - name: 构建
+        run: pnpm run build
+
+      - name: CLI 校验示例数据
+        run: |
+          node dist/fixture.js
+          node dist/cli.js validate fixtures/MyLibrary
+          node dist/cli.js compare fixtures/MyLibrary fixtures/MyLibrary-cloud
+
+      - name: 跨语言契约一致性
+        run: node ../shared/verify-contract.mjs
