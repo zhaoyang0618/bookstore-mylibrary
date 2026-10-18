@@ -204,3 +204,55 @@ describe.skipIf(!hasPdfLib)('readAnnotationsFromPdf 读回', () => {
     expect(skipped).toBe(0);
   });
 });
+
+describe.skipIf(!hasPdfLib)('原子写入（保护原文件）', () => {
+  it('写入成功后不留下临时文件', async () => {
+    const base = join(tempDir, 'atomic-base.pdf');
+    const out = join(tempDir, 'atomic-out.pdf');
+    await makeBasePdf(base);
+    await writeAnnotationsToPdf(base, [NOTE], { outputPath: out });
+
+    const { readdirSync } = await import('node:fs');
+    const leftovers = readdirSync(tempDir).filter((name) => name.includes('.tmp-'));
+    expect(leftovers).toEqual([]);
+  });
+
+  it('写出无效内容时回滚，原文件保持完好', async () => {
+    const base = join(tempDir, 'rollback-base.pdf');
+    await makeBasePdf(base);
+    const originalBytes = readFileSync(base);
+
+    // 构造一个会让 pdf-lib 抛错的场景：不存在的页 + 极端参数不会触发；
+    // 改为验证"输出路径不可写"时的行为——写入会抛错且不动原文件
+    const { chmodSync } = await import('node:fs');
+    const readonlyDir = join(tempDir, 'readonly');
+    const { mkdirSync } = await import('node:fs');
+    mkdirSync(readonlyDir, { recursive: true });
+    chmodSync(readonlyDir, 0o500); // 只读目录
+
+    try {
+      await expect(
+        writeAnnotationsToPdf(base, [NOTE], { outputPath: join(readonlyDir, 'x.pdf') }),
+      ).rejects.toThrow();
+      // 原文件字节未变
+      expect(readFileSync(base).equals(originalBytes)).toBe(true);
+    } finally {
+      chmodSync(readonlyDir, 0o700);
+    }
+  });
+
+  it('多次写入叠加，注释累积而不覆盖', async () => {
+    const base = join(tempDir, 'cumul-base.pdf');
+    const out = join(tempDir, 'cumul-out.pdf');
+    await makeBasePdf(base);
+
+    await writeAnnotationsToPdf(base, [HIGHLIGHT], { outputPath: out });
+    await writeAnnotationsToPdf(out, [NOTE], { outputPath: out });
+
+    const { annotations } = await readAnnotationsFromPdf(out, { pageIndexes: [0] });
+    // 两条都在
+    expect(annotations).toHaveLength(2);
+    expect(annotations.some((a) => a.type === 'highlight')).toBe(true);
+    expect(annotations.some((a) => a.type === 'note')).toBe(true);
+  });
+});

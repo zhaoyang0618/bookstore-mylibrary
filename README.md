@@ -39,7 +39,7 @@ mylibrary/
 
 ```bash
 pnpm install
-pnpm test          # 185 个测试
+pnpm test          # 188 个测试
 pnpm run build     # 产出 dist/
 
 # 生成示例数据（本地 + 网盘两份，用于两端联调）
@@ -85,7 +85,7 @@ node dist/cli.js pdf-annotations <目录> <PDF相对路径> [页码...]  # 列�
 
 ```
 Test Files  10 passed (10)
-     Tests  185 passed (185)
+     Tests  188 passed (188)
 ```
 
 包含：schema 兼容性、五类文档校验、版本对比、冲突合并（书籍并集 / 字段级 / 位置决胜 / holder 并集 / sync_state 择优）、Wiki 解析与序列化往返、扫描导入、四种删除语义、迁移备份，以及**端到端**：两个客户端（模拟 Mac + iPad）读写同一份数据。
@@ -124,6 +124,15 @@ PDFHexString.fromText('黑暗森林法则') → 读回 "黑暗森林法则" ✅
 
 因此 `/Contents`、`/T`、`/NM` 一律走 UTF-16BE 十六进制串（`<FEFF...>`）。
 `encodePdfText` / `decodePdfText` 把这条规则固化下来，并由测试守护。
+
+### 原子写入（保护原文件）
+
+PDF 是用户的真实资产，写到一半失败不能把原文件毁掉。因此写入流程是：
+
+1. 先写临时文件 `<target>.tmp-<pid>-<ts>`
+2. 校验 `%PDF-` 魔数与体积合理性
+3. 通过后 `rename` 原子替换
+4. 任一步失败 → 删除临时文件，**原文件不动**
 
 ### pdf-lib 是可选依赖
 

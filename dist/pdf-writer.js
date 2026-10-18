@@ -16,7 +16,7 @@
  *
  * @module @bookstore/mylibrary-core/pdf-writer
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { annotationToPdfSpec } from './pdf-annotate.js';
 /** 动态加载 pdf-lib（可选依赖，未安装时给出清晰错误）。 */
 async function loadPdfLib() {
@@ -66,7 +66,31 @@ export async function writeAnnotationsToPdf(pdfPath, annotations, options = {}) 
     }
     const saved = await doc.save({ useObjectStreams: false });
     const target = options.outputPath ?? pdfPath;
-    writeFileSync(target, saved);
+    // 原子写入：先落临时文件，校验通过后再替换。
+    // PDF 是重要资产，写到一半失败不能把原文件毁掉。
+    const tempPath = `${target}.tmp-${process.pid}-${Date.now()}`;
+    try {
+        writeFileSync(tempPath, saved);
+        // 最小健全性校验：PDF 魔数 + 体积合理
+        const head = readFileSync(tempPath).subarray(0, 5).toString('latin1');
+        if (head !== '%PDF-') {
+            throw new Error('写出的 PDF 缺少 %PDF- 魔数，已放弃替换以保护原文件');
+        }
+        if (saved.length < 64) {
+            throw new Error(`写出的 PDF 过小（${saved.length} 字节），已放弃替换以保护原文件`);
+        }
+        renameSync(tempPath, target);
+    }
+    catch (error) {
+        try {
+            if (existsSync(tempPath))
+                unlinkSync(tempPath);
+        }
+        catch {
+            // 清理失败不影响主错误
+        }
+        throw error;
+    }
     return { written, path: target, bytes: saved.length };
 }
 /** 由批注推断页索引。 */
