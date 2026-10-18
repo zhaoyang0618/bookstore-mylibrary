@@ -11,6 +11,7 @@
  *   mylibrary migrate   <MyLibrary目录>
  *   mylibrary graph     <MyLibrary目录>
  *   mylibrary chunks    <MyLibrary目录> <book_id> <视频文件名> [分片大小]  # 分片上传与续传
+ *   mylibrary pdf-annotations <MyLibrary目录> <PDF相对路径> [页码...]     # 列出 PDF 批注
  *
  * @module @bookstore/mylibrary-core/cli
  */
@@ -24,7 +25,7 @@ import { validateDocument, type ValidationReport } from './validate.js';
 import { mergeLibraries, planSync } from './sync.js';
 import { parseWikiPage } from './wiki.js';
 
-type CommandName = 'validate' | 'compare' | 'init' | 'migrate' | 'graph' | 'chunks';
+type CommandName = 'validate' | 'compare' | 'init' | 'migrate' | 'graph' | 'chunks' | 'pdf-annotations';
 
 interface CliOptions {
   json: boolean;
@@ -39,7 +40,7 @@ function parseArgs(argv: string[]): { command: CommandName; args: string[]; opti
     else if (token === '--help' || token === '-h') options.json = options.json;
     else positional.push(token);
   }
-  const valid: CommandName[] = ['validate', 'compare', 'init', 'migrate', 'graph', 'chunks'];
+  const valid: CommandName[] = ['validate', 'compare', 'init', 'migrate', 'graph', 'chunks', 'pdf-annotations'];
   if (command === undefined || !valid.includes(command as CommandName)) {
     throw new MyLibraryError('USAGE', `用法：mylibrary <${valid.join('|')}> [参数] [--json]`);
   }
@@ -241,6 +242,41 @@ function cmdChunks(root: string, args: string[], options: CliOptions): number {
   return 0;
 }
 
+
+// ---------- pdf-annotations ----------
+
+/**
+ * 列出 PDF 文件里的批注（设计文档 4.2 跨端批注验证）。
+ *
+ * 用于确认「另一端写入的注释能被看到」。
+ */
+async function cmdPdfAnnotations(root: string, args: string[], options: CliOptions): Promise<number> {
+  const relativePath = args[0];
+  if (relativePath === undefined) {
+    throw new MyLibraryError('USAGE', '用法：mylibrary pdf-annotations <MyLibrary目录> <PDF相对路径> [页码...]');
+  }
+  const { readAnnotationsFromPdf } = await import('./pdf-writer.js');
+  const absolute = resolve(root, relativePath);
+  if (!existsSync(absolute)) throw new MyLibraryError('FILE_NOT_FOUND', `PDF 不存在：${absolute}`);
+
+  const pages = args.slice(1).map((n) => Number.parseInt(n, 10)).filter((n) => Number.isFinite(n));
+  const result = await readAnnotationsFromPdf(absolute, pages.length > 0 ? { pageIndexes: pages } : {});
+
+  if (options.json) {
+    print(JSON.stringify({ path: absolute, count: result.annotations.length, skipped: result.skipped, annotations: result.annotations }, null, 2));
+  } else {
+    print(`PDF：${absolute}`);
+    print(`批注：${result.annotations.length} 条${pages.length > 0 ? `（仅第 ${pages.join(', ')} 页）` : ''}`);
+    for (const annotation of result.annotations) {
+      const page = (annotation.anchor as { page?: number }).page ?? 0;
+      const text = annotation.text ?? annotation.note ?? '(无文本)';
+      print(`  [第${page + 1}页] ${annotation.type} · ${annotation.id} · ${text}`);
+    }
+    if (result.skipped > 0) print(`  跳过无法解析的注释：${result.skipped} 条`);
+  }
+  return 0;
+}
+
 // ---------- main ----------
 
 function main(): void {
@@ -269,6 +305,17 @@ function main(): void {
       }
       case 'chunks': {
         process.exitCode = cmdChunks(requireExistingDir(args[0] ?? '.'), args.slice(1), options);
+        break;
+      }
+      case 'pdf-annotations': {
+        void cmdPdfAnnotations(requireExistingDir(args[0] ?? '.'), args.slice(1), options)
+          .then((code) => {
+            process.exitCode = code;
+          })
+          .catch((error: unknown) => {
+            process.stderr.write(`错误：${error instanceof Error ? error.message : String(error)}\n`);
+            process.exitCode = 1;
+          });
         break;
       }
     }

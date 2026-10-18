@@ -43,5 +43,8 @@
   "bugs": {
     "url": "https://github.com/zhaoyang0618/bookstore-mylibrary/issues"
   },
-  "homepage": "https://github.com/zhaoyang0618/bookstore-mylibrary#readme"
+  "homepage": "https://github.com/zhaoyang0618/bookstore-mylibrary#readme",
+  "optionalDependencies": {
+    "pdf-lib": "^1.17.1"
+  }
 }
