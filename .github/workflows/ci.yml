@@ -39,4 +39,4 @@ jobs:
           node dist/cli.js compare fixtures/MyLibrary fixtures/MyLibrary-cloud
 
       - name: 跨语言契约一致性
-        run: node ../shared/verify-contract.mjs
+        run: node scripts/verify-contract.mjs

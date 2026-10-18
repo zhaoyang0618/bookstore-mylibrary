@@ -1,5 +1,5 @@
 {
-  "name": "@bookstore/mylibrary-core",
+  "name": "mylibrary-core",
   "version": "0.1.0",
   "description": "MyLibrary 共享数据层 — dsh 扩展版与 Flutter 跨平台版的唯一数据契约",
   "type": "module",
@@ -35,5 +35,13 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "@types/node": "^24.9.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhaoyang0618/bookstore-mylibrary.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zhaoyang0618/bookstore-mylibrary/issues"
+  },
+  "homepage": "https://github.com/zhaoyang0618/bookstore-mylibrary#readme"
 }

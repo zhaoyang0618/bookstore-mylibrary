@@ -2,9 +2,15 @@
 node_modules/
 .pnpm-store/
 
-# 构建产物
-dist/
+# 构建产物：dist/ **故意提交**（见下方说明），只忽略增量缓存
 *.tsbuildinfo
+
+# dist/ 提交到 git 的原因：
+#   dsh-extension 通过 `github:zhaoyang0618/bookstore-mylibrary` 依赖本包，
+#   pnpm 不会为 git 依赖执行 prepare/build 脚本，因此构建产物必须入库，
+#   否则依赖方拿到的是没有 dist/ 的空包。
+#   改源码后请执行：pnpm run build && git add dist && git commit
+# dist/
 
 # 环境变量（可能含网盘密码等）
 .env
