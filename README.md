@@ -22,6 +22,9 @@ mylibrary/
 │   ├── wiki.ts        # Wiki 页面 frontmatter / [[]] / 图谱（1.6）
 │   ├── sync.ts        # 版本对比 / 冲突合并 / 请求队列 / 删除语义（1.8）
 │   ├── scanner.ts     # 本地导入：扫描目录 → books/{书名}/（2.5 / 3.4）
+│   ├── chunks.ts      # 大文件分片上传 + 断点续传（1.8.6）
+│   ├── watch.ts       # 文件监视：fs.watch + 轮询兜底（阶段六）
+│   ├── transcribe.ts  # 录课转录：可插拔 Transcriber（阶段七）
 │   ├── store.ts       # MyLibraryStore：文件系统访问层
 │   ├── cli.ts         # CLI 入口
 │   ├── fixture.ts     # 示例数据生成
@@ -34,7 +37,7 @@ mylibrary/
 
 ```bash
 pnpm install
-pnpm test          # 93 个测试
+pnpm test          # 148 个测试
 pnpm run build     # 产出 dist/
 
 # 生成示例数据（本地 + 网盘两份，用于两端联调）
@@ -51,6 +54,7 @@ node dist/cli.js compare fixtures/MyLibrary fixtures/MyLibrary-cloud
 node dist/cli.js init <目录>       # 初始化标准结构
 node dist/cli.js migrate <目录>    # 迁移 schema（自动备份到 .trash/）
 node dist/cli.js graph <目录>      # Wiki 双向链接图谱
+node dist/cli.js chunks <目录> <book_id> <视频文件名> [分片大小]  # 分片上传与续传
 ```
 
 ## 已实现的设计文档条目
@@ -70,12 +74,14 @@ node dist/cli.js graph <目录>      # Wiki 双向链接图谱
 | 1.8.6 | 大文件分片 | ✅ 目录约定 + `partsDir()` |
 | 1.9 | Schema 演进 | ✅ 兼容性检查 + 迁移前自动备份 |
 | 2.5 / 3.4 | 本地导入流程 | ✅ `scanner.ts` |
+| 阶段六 | 桌面端文件监视 | ✅ `watch.ts`（fs.watch + 轮询兜底） |
+| 阶段七 | 录课视频文字转录 | ✅ `transcribe.ts`（可插拔转录器） |
 
 ## 测试覆盖
 
 ```
-Test Files  5 passed (5)
-     Tests  93 passed (93)
+Test Files  8 passed (8)
+     Tests  148 passed (148)
 ```
 
 包含：schema 兼容性、五类文档校验、版本对比、冲突合并（书籍并集 / 字段级 / 位置决胜 / holder 并集 / sync_state 择优）、Wiki 解析与序列化往返、扫描导入、四种删除语义、迁移备份，以及**端到端**：两个客户端（模拟 Mac + iPad）读写同一份数据。
