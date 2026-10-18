@@ -19,9 +19,26 @@ import {
   RECORDINGS_DIRNAME,
   REQUESTS_DIR,
   TRASH_DIR,
+  UPLOAD_PARTS_FILE,
   WIKI_DIR,
   WIKI_INDEX_FILE,
 } from './layout.js';
+import {
+  DEFAULT_CHUNK_SIZE,
+  mergeParts,
+  planChunks,
+  quickFileHash,
+  readProgress,
+  runChunkedUpload,
+  type ChunkPlan,
+  type UploadProgress,
+} from './chunks.js';
+import {
+  transcribeBookRecordings,
+  type TranscribeOptions,
+  type TranscribeResult,
+  type Transcriber,
+} from './transcribe.js';
 import { SCHEMA_VERSION, assertSchemaCompatible } from './schema.js';
 import { planDelete } from './sync.js';
 import { validateDocument, validateLibrary, validateManifest, validateNotes, validateSyncRequest, type ValidationReport } from './validate.js';
@@ -395,9 +412,90 @@ export class MyLibraryStore {
     return recording;
   }
 
-  /** 大文件分片上传的进度文件（1.8.6）。 */
-  partsDir(fileName: string, bookId: string): string {
-    return join(this.root, BOOKS_DIR, bookId, RECORDINGS_DIRNAME, `${fileName}${PARTS_SUFFIX}`);
+  /**
+   * 某个录课视频的分片目录（1.8.6）。
+   *
+   * 按**书籍目录**定位（与 {@link writeRecording} 一致），而不是 book_id，
+   * 否则分片会落到 `books/{id}/recordings/` 而元数据在 `books/{书名}/recordings/`。
+   */
+  partsDir(fileName: string, book: Book): string {
+    const base = book.relative_path.replace(/\/[^/]*$/, '');
+    return join(this.root, base, RECORDINGS_DIRNAME, `${fileName}${PARTS_SUFFIX}`);
+  }
+
+  /** 某个录课视频的绝对路径（`books/{书名}/recordings/{fileName}`）。 */
+  recordingPath(fileName: string, book: Book): string {
+    const base = book.relative_path.replace(/\/[^/]*$/, '');
+    return join(this.root, base, RECORDINGS_DIRNAME, fileName);
+  }
+
+  /**
+   * 为一个录课文���执行分片上传（本地切分 + 断点续传，设计文档 1.8.6）。
+   *
+   * @param book - 所属书籍
+   * @param fileName - 视频文件名（如 `2026-10-16-解析.mp4`）
+   * @param onPart - 每个分片切好后调用（适配器在这里上传该分片）
+   */
+  uploadRecordingChunks(
+    book: Book,
+    fileName: string,
+    onPart?: (part: { index: number; path: string; sizeBytes: number }) => void,
+    chunkSize = DEFAULT_CHUNK_SIZE,
+  ): { progress: UploadProgress; plan: ChunkPlan; resumed: boolean } {
+    const sourcePath = this.recordingPath(fileName, book);
+    return runChunkedUpload({
+      fs: this.fs,
+      sourcePath,
+      chunkSize,
+      ...(onPart !== undefined ? { onPart } : {}),
+    });
+  }
+
+  /** 读取某个录课视频的分片上传进度。 */
+  readUploadProgress(book: Book, fileName: string): UploadProgress | undefined {
+    const dir = this.partsDir(fileName, book);
+    const progressPath = join(dir, UPLOAD_PARTS_FILE);
+    if (!this.fs.exists(progressPath)) return undefined;
+    try {
+      return JSON.parse(this.fs.readFile(progressPath)) as UploadProgress;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** 合并已完成的分片为完整视频，并清理分片目录。 */
+  mergeRecordingChunks(book: Book, fileName: string): number {
+    const sourcePath = this.recordingPath(fileName, book);
+    const plan = planChunks(sourcePath, this.fs.stat(sourcePath)?.size ?? 0, DEFAULT_CHUNK_SIZE);
+    const info = this.fs.stat(sourcePath);
+    const fileHash = quickFileHash(this.fs, sourcePath);
+    const progress = readProgress(this.fs, plan, fileHash, new Date().toISOString());
+    if (info !== undefined && progress.total_bytes === 0) progress.total_bytes = info.size;
+    return mergeParts(this.fs, plan, progress, sourcePath);
+  }
+
+  /**
+   * 转录一本书的全部录课视频（设计文档阶段七）。
+   *
+   * 转录器由调用方注入（dsh 版可接模型服务，Flutter 版可接 whisper.cpp）。
+   *
+   * @returns 成功与失败清单
+   */
+  async transcribeRecordings(
+    book: Book,
+    transcriber: Transcriber,
+    options: TranscribeOptions = {},
+  ): Promise<{ results: TranscribeResult[]; errors: { recording: Recording; error: Error }[] }> {
+    const recordings = this.listRecordings(book);
+    return transcribeBookRecordings({
+      fs: this.fs,
+      book,
+      recordings,
+      resolveMediaPath: (recording) => this.recordingPath(recording.file, book),
+      transcriber,
+      writeRecording: (recording) => this.writeRecording(recording),
+      transcribeOptions: options,
+    });
   }
 
   // ---------- 同步请求队列（1.8.4） ----------

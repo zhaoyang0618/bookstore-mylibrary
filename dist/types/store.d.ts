@@ -6,6 +6,8 @@
  *
  * @module @bookstore/mylibrary-core/store
  */
+import { type ChunkPlan, type UploadProgress } from './chunks.js';
+import { type TranscribeOptions, type TranscribeResult, type Transcriber } from './transcribe.js';
 import { type WikiGraph } from './wiki.js';
 import type { Annotation, Book, BookFormat, DeleteOperation, Library, Manifest, NotesSidecar, Recording, SyncRequest, WikiPage } from './types.js';
 /** 文件系统访问接口（便于测试时替换）。 */
@@ -86,8 +88,49 @@ export declare class MyLibraryStore {
     listRecordings(book: Book): Recording[];
     /** 写入一条录课视频元数据（与视频文件同名）。 */
     writeRecording(recording: Recording): Recording;
-    /** 大文件分片上传的进度文件（1.8.6）。 */
-    partsDir(fileName: string, bookId: string): string;
+    /**
+     * 某个录课视频的分片目录（1.8.6）。
+     *
+     * 按**书籍目录**定位（与 {@link writeRecording} 一致），而不是 book_id，
+     * 否则分片会落到 `books/{id}/recordings/` 而元数据在 `books/{书名}/recordings/`。
+     */
+    partsDir(fileName: string, book: Book): string;
+    /** 某个录课视频的绝对路径（`books/{书名}/recordings/{fileName}`）。 */
+    recordingPath(fileName: string, book: Book): string;
+    /**
+     * 为一个录课文���执行分片上传（本地切分 + 断点续传，设计文档 1.8.6）。
+     *
+     * @param book - 所属书籍
+     * @param fileName - 视频文件名（如 `2026-10-16-解析.mp4`）
+     * @param onPart - 每个分片切好后调用（适配器在这里上传该分片）
+     */
+    uploadRecordingChunks(book: Book, fileName: string, onPart?: (part: {
+        index: number;
+        path: string;
+        sizeBytes: number;
+    }) => void, chunkSize?: number): {
+        progress: UploadProgress;
+        plan: ChunkPlan;
+        resumed: boolean;
+    };
+    /** 读取某个录课视频的分片上传进度。 */
+    readUploadProgress(book: Book, fileName: string): UploadProgress | undefined;
+    /** 合并已完成的分片为完整视频，并清理分片目录。 */
+    mergeRecordingChunks(book: Book, fileName: string): number;
+    /**
+     * 转录一本书的全部录课视频（设计文档阶段七）。
+     *
+     * 转录器由调用方注入（dsh 版可接模型服务，Flutter 版可接 whisper.cpp）。
+     *
+     * @returns 成功与失败清单
+     */
+    transcribeRecordings(book: Book, transcriber: Transcriber, options?: TranscribeOptions): Promise<{
+        results: TranscribeResult[];
+        errors: {
+            recording: Recording;
+            error: Error;
+        }[];
+    }>;
     /** 列出全部同步请求。 */
     listSyncRequests(): SyncRequest[];
     /** 写入一条同步请求。 */

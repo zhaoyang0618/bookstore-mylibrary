@@ -10,6 +10,7 @@
  *   mylibrary init      <目标目录>
  *   mylibrary migrate   <MyLibrary目录>
  *   mylibrary graph     <MyLibrary目录>
+ *   mylibrary chunks    <MyLibrary目录> <book_id> <视频文件名> [分片大小]  # 分片上传与续传
  *
  * @module @bookstore/mylibrary-core/cli
  */
@@ -32,7 +33,7 @@ function parseArgs(argv) {
         else
             positional.push(token);
     }
-    const valid = ['validate', 'compare', 'init', 'migrate', 'graph'];
+    const valid = ['validate', 'compare', 'init', 'migrate', 'graph', 'chunks'];
     if (command === undefined || !valid.includes(command)) {
         throw new MyLibraryError('USAGE', `用法：mylibrary <${valid.join('|')}> [参数] [--json]`);
     }
@@ -180,6 +181,48 @@ function cmdGraph(root, options) {
     }
     return 0;
 }
+// ---------- chunks ----------
+/**
+ * 分片上传演示：把一本书的录课视频切片，展示断点续传。
+ *
+ * 第一次运行会切分全部分片；加 `--resume` 再跑一次不会重复切分。
+ */
+function cmdChunks(root, args, options) {
+    const [bookId, fileName, chunkSizeArg] = args;
+    const chunkSize = chunkSizeArg !== undefined ? Number.parseInt(chunkSizeArg, 10) : undefined;
+    if (bookId === undefined || fileName === undefined) {
+        throw new MyLibraryError('USAGE', '用法：mylibrary chunks <MyLibrary目录> <book_id> <视频文件名>');
+    }
+    const store = new MyLibraryStore(root, { clientId: 'cli-chunks' });
+    const book = store.findBook(bookId);
+    if (book === undefined)
+        throw new MyLibraryError('BOOK_NOT_FOUND', `书籍不存在：${bookId}`);
+    const before = store.readUploadProgress(book, fileName);
+    const uploaded = [];
+    const result = store.uploadRecordingChunks(book, fileName, (part) => {
+        uploaded.push(part.index);
+    }, ...(chunkSize !== undefined && Number.isFinite(chunkSize) ? [chunkSize] : []));
+    if (options.json) {
+        print(JSON.stringify({
+            partsDir: result.plan.partsDir,
+            totalParts: result.progress.total_parts,
+            chunkSize: result.progress.chunk_size,
+            completedBefore: before?.completed_parts ?? [],
+            uploadedNow: uploaded,
+            resumed: result.resumed,
+            complete: result.progress.completed_parts.length === result.progress.total_parts,
+        }, null, 2));
+    }
+    else {
+        print(`分片目录：${result.plan.partsDir}`);
+        print(`文件大小：${result.progress.total_bytes} 字节，分片大小 ${result.progress.chunk_size}，共 ${result.progress.total_parts} 片`);
+        if (before !== undefined)
+            print(`续传：上次已完成 ${before.completed_parts.length} 片`);
+        print(`本次切分：${uploaded.length > 0 ? uploaded.join(', ') : '无（已全部完成）'}`);
+        print(`进度：${result.progress.completed_parts.length}/${result.progress.total_parts}`);
+    }
+    return 0;
+}
 // ---------- main ----------
 function main() {
     try {
@@ -203,6 +246,10 @@ function main() {
             }
             case 'graph': {
                 process.exitCode = cmdGraph(requireExistingDir(args[0] ?? '.'), options);
+                break;
+            }
+            case 'chunks': {
+                process.exitCode = cmdChunks(requireExistingDir(args[0] ?? '.'), args.slice(1), options);
                 break;
             }
         }

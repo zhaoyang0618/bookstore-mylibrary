@@ -10,6 +10,14 @@ import type { FileSystem } from '../store.js';
 export class MemoryFs implements FileSystem {
   readonly files = new Map<string, string>();
 
+  /** 每个文件最后一次写入的时间戳（真实文件系统语义：mtime 只在写入时变）。 */
+  readonly mtimes = new Map<string, number>();
+
+  /** 手动推进某文件的 mtime，供轮询测试使用。 */
+  touch(path: string, mtimeMs = Date.now()): void {
+    this.mtimes.set(this.normalize(path), mtimeMs);
+  }
+
   private normalize(path: string): string {
     return path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
   }
@@ -32,7 +40,9 @@ export class MemoryFs implements FileSystem {
   }
 
   writeFile(path: string, content: string): void {
-    this.files.set(this.normalize(path), content);
+    const key = this.normalize(path);
+    this.files.set(key, content);
+    this.mtimes.set(key, Date.now());
   }
 
   mkdir(path: string): void {
@@ -58,10 +68,15 @@ export class MemoryFs implements FileSystem {
     const key = this.normalize(path);
     const content = this.files.get(key);
     if (content !== undefined) {
-      return { size: Buffer.byteLength(content, 'utf8'), mtimeMs: Date.now(), isFile: true, isDirectory: false };
+      return {
+        size: Buffer.byteLength(content, 'utf8'),
+        mtimeMs: this.mtimes.get(key) ?? 0,
+        isFile: true,
+        isDirectory: false,
+      };
     }
     if (this.exists(key)) {
-      return { size: 0, mtimeMs: Date.now(), isFile: false, isDirectory: true };
+      return { size: 0, mtimeMs: 0, isFile: false, isDirectory: true };
     }
     return undefined;
   }

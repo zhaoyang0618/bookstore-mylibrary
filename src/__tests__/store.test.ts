@@ -197,9 +197,10 @@ describe('MyLibraryStore', () => {
     expect(recordings[0]?.file).toBe('2026-10-16-黑暗森林解析.mp4');
   });
 
-  it('大文件分片目录（1.8.6）', () => {
-    store.addBook(makeBook());
-    expect(store.partsDir('video.mp4', 'uuid-1')).toBe('/Library/books/uuid-1/recordings/video.mp4.parts');
+  it('大文件分片目录按书籍目录定位（1.8.6）', () => {
+    const book = store.addBook(makeBook());
+    // 与 writeRecording 的落点一致：books/{书名}/recordings/，而不是 books/{id}/
+    expect(store.partsDir('video.mp4', book)).toBe('/Library/books/三体/recordings/video.mp4.parts');
   });
 
   it('同步请求队列', () => {

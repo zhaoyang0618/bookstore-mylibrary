@@ -10,6 +10,7 @@
  *   mylibrary init      <目标目录>
  *   mylibrary migrate   <MyLibrary目录>
  *   mylibrary graph     <MyLibrary目录>
+ *   mylibrary chunks    <MyLibrary目录> <book_id> <视频文件名> [分片大小]  # 分片上传与续传
  *
  * @module @bookstore/mylibrary-core/cli
  */
